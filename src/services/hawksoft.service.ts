@@ -25,6 +25,7 @@ export class HawkSoftService {
       const response = await axios.get(`${this.baseUrl}/vendor/agencies`, {
         params: { version: this.version },
         headers: { Authorization: this.getAuthHeader() },
+        timeout: 30000,
       })
       return response.data
     } catch (error: any) {
@@ -44,6 +45,7 @@ export class HawkSoftService {
         {
           params: { version: this.version },
           headers: { Authorization: this.getAuthHeader() },
+          timeout: 30000,
         },
       )
       return response.data
@@ -70,6 +72,7 @@ export class HawkSoftService {
             offset,
           },
           headers: { Authorization: this.getAuthHeader() },
+          timeout: 30000,
         },
       )
       // The API returns an array of client IDs directly
@@ -96,6 +99,7 @@ export class HawkSoftService {
             deleted: true,
           },
           headers: { Authorization: this.getAuthHeader() },
+          timeout: 30000,
         },
       )
       return response.data
@@ -112,46 +116,63 @@ export class HawkSoftService {
     agencyId: number,
     query: { phone?: string; name?: string },
     limit: number = 20,
-  ): Promise<any[]> {
+  ): Promise<{ results: any[]; errors: string[] }> {
     try {
-      const clientIds = await this.getClientList(agencyId, limit, 0);
-      const matchingClients: any[] = [];
+      const allClientIds = await this.getClientList(agencyId, limit, 0);
+      // Manually respect limit because the HawkSoft API sometimes ignores it
+      const clientIds = allClientIds.slice(0, limit);
+      const results: any[] = [];
+      const errors: string[] = [];
+      const chunkSize = 5; // Process in smaller batches to avoid overwhelming the API
 
-      for (const clientId of clientIds) {
-        const client = await this.getClient(agencyId, clientId);
+      for (let i = 0; i < clientIds.length; i += chunkSize) {
+        const chunk = clientIds.slice(i, i + chunkSize);
 
-        let match = false;
+        const chunkPromises = chunk.map(async (clientId) => {
+          try {
+            const client = await this.getClient(agencyId, clientId);
 
-        // Match by phone
-        if (query.phone) {
-          const searchPhone = query.phone.replace(/\D/g, '');
-          const clientPhones = [
-            client.details?.homePhone,
-            client.details?.workPhone,
-            client.details?.mobilePhone,
-            ...(client.people?.map(p => p.phone) || [])
-          ].filter(Boolean).map(p => p.replace(/\D/g, ''));
+            let match = false;
 
-          if (clientPhones.some(p => p.includes(searchPhone))) {
-            match = true;
+            // Match by phone
+            if (query.phone) {
+              const searchPhone = query.phone.replace(/\D/g, '');
+              const clientPhones = [
+                client.details?.homePhone,
+                client.details?.workPhone,
+                client.details?.mobilePhone,
+                ...(client.people?.map((p: any) => p.phone) || [])
+              ].filter(Boolean).map((p: string) => p.replace(/\D/g, ''));
+
+              if (clientPhones.some((p: string) => p.includes(searchPhone))) {
+                match = true;
+              }
+            }
+
+            // Match by name
+            if (query.name && !match) {
+              const searchName = query.name.toLowerCase();
+              const clientName = `${client.details?.firstName || ''} ${client.details?.lastName || ''}`.toLowerCase();
+              if (clientName.includes(searchName)) {
+                match = true;
+              }
+            }
+
+            return { match: match ? client : null, error: null };
+          } catch (error: any) {
+            logger.error(error, `Error fetching client ${clientId} during search:`);
+            return { match: null, error: error.message || `Failed to fetch client ${clientId}` };
           }
-        }
+        });
 
-        // Match by name
-        if (query.name && !match) {
-          const searchName = query.name.toLowerCase();
-          const clientName = `${client.details?.firstName} ${client.details?.lastName}`.toLowerCase();
-          if (clientName.includes(searchName)) {
-            match = true;
-          }
-        }
-
-        if (match) {
-          matchingClients.push(client);
+        const chunkResults = await Promise.all(chunkPromises);
+        for (const res of chunkResults) {
+          if (res.match) results.push(res.match);
+          if (res.error) errors.push(res.error);
         }
       }
 
-      return matchingClients;
+      return { results, errors };
     } catch (error: any) {
       logger.error('HawkSoft searchClients failed:', error.message);
       throw new Error(`HawkSoft API error: ${error.message}`);
@@ -191,6 +212,7 @@ export class HawkSoftService {
               Authorization: this.getAuthHeader(),
               'Content-Type': 'application/json',
             },
+            timeout: 30000,
           },
         )
         return response.data
@@ -223,6 +245,7 @@ export class HawkSoftService {
                 Authorization: this.getAuthHeader(),
                 'Content-Type': 'application/json',
               },
+              timeout: 30000,
             },
           )
           return response2.data
@@ -250,6 +273,7 @@ export class HawkSoftService {
                 Authorization: this.getAuthHeader(),
                 'Content-Type': 'application/json',
               },
+              timeout: 30000,
             },
           )
           return response3.data
@@ -322,6 +346,7 @@ export class HawkSoftService {
             Authorization: this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
+          timeout: 30000,
         },
       )
       return response.data
@@ -349,6 +374,7 @@ export class HawkSoftService {
         {
           params: { version: this.version },
           headers: { Authorization: this.getAuthHeader() },
+          timeout: 30000,
         },
       )
       return response.data
@@ -379,6 +405,7 @@ export class HawkSoftService {
             include: 'details,policies'
           },
           headers: { Authorization: this.getAuthHeader() },
+          timeout: 30000,
         },
       )
 

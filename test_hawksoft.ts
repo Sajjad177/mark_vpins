@@ -22,7 +22,7 @@ async function test() {
             headers: { Authorization: getAuthHeader() },
         });
         console.log('Success! Client IDs:', response.data);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error:', error.response ? error.response.data : error.message);
     }
 }

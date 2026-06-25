@@ -20,16 +20,37 @@ const getClientPolicies = catchAsync(async (req: Request, res: Response) => {
     const { clientId } = req.params;
 
     if (!clientId) {
-        throw new AppError('Client ID is required', httpStatus.BAD_REQUEST);
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'Client ID is required',
+        });
     }
 
-    const result = await HawkSoftService.getPolicies(Number(agencyId), Number(clientId));
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Client policies retrieved successfully',
-        data: result,
-    });
+    try {
+        const result = await HawkSoftService.getPolicies(Number(agencyId), Number(clientId));
+
+        if (!result || (Array.isArray(result) && result.length === 0)) {
+            return sendResponse(res, {
+                statusCode: httpStatus.NOT_FOUND,
+                success: false,
+                message: 'No policies found for this client',
+            });
+        }
+
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: 'Client policies retrieved successfully',
+            data: result,
+        });
+    } catch (error: any) {
+        sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            success: false,
+            message: error.message || 'Error retrieving client policies',
+        });
+    }
 });
 
 const getPolicyByNumber = catchAsync(async (req: Request, res: Response) => {
@@ -37,16 +58,37 @@ const getPolicyByNumber = catchAsync(async (req: Request, res: Response) => {
     const { policyNumber } = req.params;
 
     if (!policyNumber) {
-        throw new AppError('Policy Number is required', httpStatus.BAD_REQUEST);
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'Policy Number is required',
+        });
     }
 
-    const result = await HawkSoftService.getPolicyByNumber(Number(agencyId), policyNumber);
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Policy information retrieved successfully',
-        data: result,
-    });
+    try {
+        const result = await HawkSoftService.getPolicyByNumber(Number(agencyId), policyNumber);
+
+        if (!result || (Array.isArray(result) && result.length === 0)) {
+            return sendResponse(res, {
+                statusCode: httpStatus.NOT_FOUND,
+                success: false,
+                message: 'No policy found matching the policy number',
+            });
+        }
+
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: 'Policy information retrieved successfully',
+            data: result,
+        });
+    } catch (error: any) {
+        sendResponse(res, {
+            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+            success: false,
+            message: error.message || 'Error retrieving policy information',
+        });
+    }
 });
 
 const getClient = catchAsync(async (req: Request, res: Response) => {
@@ -54,16 +96,28 @@ const getClient = catchAsync(async (req: Request, res: Response) => {
     const { clientId } = req.params;
 
     if (!clientId) {
-        throw new AppError('Client ID is required', httpStatus.BAD_REQUEST);
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'Client ID is required',
+        });
     }
 
-    const result = await HawkSoftService.getClient(Number(agencyId), Number(clientId));
-    sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: 'Client details retrieved successfully',
-        data: result,
-    });
+    try {
+        const result = await HawkSoftService.getClient(Number(agencyId), Number(clientId));
+        sendResponse(res, {
+            statusCode: httpStatus.OK,
+            success: true,
+            message: 'Client details retrieved successfully',
+            data: result,
+        });
+    } catch (error: any) {
+        sendResponse(res, {
+            statusCode: httpStatus.NOT_FOUND,
+            success: false,
+            message: error.message || 'Client not found',
+        });
+    }
 });
 
 const searchClients = catchAsync(async (req: Request, res: Response) => {
@@ -71,20 +125,41 @@ const searchClients = catchAsync(async (req: Request, res: Response) => {
     const { phone, name, limit } = req.query;
 
     if (!agencyId) {
-        throw new AppError('Agency ID is required', httpStatus.BAD_REQUEST);
+        return sendResponse(res, {
+            statusCode: httpStatus.BAD_REQUEST,
+            success: false,
+            message: 'Agency ID is required',
+        });
     }
 
-    const result = await HawkSoftService.searchClients(
+    const { results, errors } = await HawkSoftService.searchClients(
         Number(agencyId),
         { phone: phone as string, name: name as string },
         limit ? Number(limit) : 20
     );
 
+    if (results.length === 0) {
+        let errorMessage = 'No clients found matching the search criteria.';
+        if (errors.length > 0) {
+            errorMessage += ` (Note: ${errors.length} partial errors occurred during search).`;
+        }
+        return sendResponse(res, {
+            statusCode: httpStatus.NOT_FOUND,
+            success: false,
+            message: errorMessage,
+        });
+    }
+
+    let message = 'Clients searched successfully';
+    if (errors.length > 0) {
+        message = `Search completed with ${errors.length} partial errors (e.g. timeouts). Found ${results.length} matches. Results might be incomplete.`;
+    }
+
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'Clients searched successfully',
-        data: result,
+        message,
+        data: results,
     });
 });
 
