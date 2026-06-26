@@ -75,6 +75,10 @@ const LeadSchema = new Schema<TLead, ILeadModel>(
       type: Date,
       required: false,
     },
+    roofAge: {
+      type: Number,
+      required: false,
+    },
     vehicleDetails: VehicleDetailsSchema,
     propertyDetails: PropertyDetailsSchema,
     businessName: { type: String, trim: true },

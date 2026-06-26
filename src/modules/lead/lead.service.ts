@@ -14,12 +14,12 @@ const createLead = async (payload: TCreateLeadInput): Promise<TLead> => {
   // Check if lead with same phone already exists
   const existingLead = await Lead.findOne({ phone: payload.phone })
 
-if (existingLead) {
-  throw new AppError(
-    'Lead with this phone number already exists', // message first
-    httpStatus.CONFLICT, // status code second
-  )
-}
+  if (existingLead) {
+    throw new AppError(
+      'Lead with this phone number already exists', // message first
+      httpStatus.CONFLICT, // status code second
+    )
+  }
   const lead = await Lead.create(payload)
   return lead
 }
@@ -56,15 +56,15 @@ const getAllLeads = async (filters: {
 }
 
 const getLeadById = async (id: string): Promise<TLead> => {
- if (!mongoose.Types.ObjectId.isValid(id)) {
-   throw new AppError('Invalid lead ID', httpStatus.BAD_REQUEST)
- }
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError('Invalid lead ID', httpStatus.BAD_REQUEST)
+  }
 
   const lead = await Lead.findById(id).populate('callLogId')
 
- if (!lead) {
-   throw new AppError('Lead not found', httpStatus.NOT_FOUND)
- }
+  if (!lead) {
+    throw new AppError('Lead not found', httpStatus.NOT_FOUND)
+  }
 
 
   return lead
@@ -103,9 +103,9 @@ const deleteLead = async (id: string): Promise<void> => {
 
   const result = await Lead.findByIdAndDelete(id)
 
-if (!result) {
-  throw new AppError('Lead not found', httpStatus.NOT_FOUND)
-}
+  if (!result) {
+    throw new AppError('Lead not found', httpStatus.NOT_FOUND)
+  }
 }
 
 const syncToHawkSoft = catchAsync(async (req: Request, res: Response) => {
@@ -150,7 +150,12 @@ Name: ${lead.name}
 Phone: ${lead.phone}
 Email: ${lead.email || 'N/A'}
 Insurance Type: ${lead.insuranceType}
+${lead.dateOfBirth ? `DOB: ${new Date(lead.dateOfBirth).toLocaleDateString()}` : ''}
+${lead.hasDog ? `Dog: Yes (${lead.numberOfDogs || 1} ${lead.dogBreed || 'Unknown Breed'})` : ''}
+${lead.lastRoofReplaced ? `Roof Replaced: ${new Date(lead.lastRoofReplaced).toLocaleDateString()}` : ''}
+${lead.roofAge ? `Roof Age: ${lead.roofAge} years` : ''}
 ${lead.vehicleDetails?.vin ? `VIN: ${lead.vehicleDetails.vin}` : ''}
+${lead.propertyDetails?.address ? `Property: ${lead.propertyDetails.address}, ${lead.propertyDetails.city}, ${lead.propertyDetails.state} ${lead.propertyDetails.zipCode}` : ''}
 ${lead.notes ? `\nNotes: ${lead.notes}` : ''}
 ─────────────────────────────
 ${new Date().toLocaleString()}

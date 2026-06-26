@@ -67,6 +67,7 @@ export const createLeadSchema = z.object({
       .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
         message: 'Invalid date format',
       }),
+    roofAge: z.number().int().min(0).optional(),
   }),
 })
 
@@ -89,25 +90,26 @@ export const updateLeadSchema = z.object({
     numberOfEmployees: z.number().min(1).optional(),
     notes: z.string().optional(),
     callSummary: z.string().optional(),
+    dateOfBirth: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+        message: 'Invalid date format',
+      }),
+    hasDog: z.boolean().optional(),
+    numberOfDogs: z.number().int().min(0).optional(),
+    dogBreed: z.string().trim().optional(),
+    lastRoofReplaced: z
+      .string()
+      .optional()
+      .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
+        message: 'Invalid date format',
+      }),
+    roofAge: z.number().int().min(0).optional(),
   }),
   params: z.object({
     id: z.string(),
   }),
-  dateOfBirth: z
-    .string()
-    .optional()
-    .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
-      message: 'Invalid date format',
-    }),
-  hasDog: z.boolean().optional(),
-  numberOfDogs: z.number().int().min(0).optional(),
-  dogBreed: z.string().trim().optional(),
-  lastRoofReplaced: z
-    .string()
-    .optional()
-    .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
-      message: 'Invalid date format',
-    }),
 })
 
 // Get lead by phone validation

@@ -70,6 +70,7 @@ export interface TLead {
   numberOfDogs?: number
   dogBreed?: string
   lastRoofReplaced?: Date
+  roofAge?: number
 }
 
 export interface ILeadModel extends Model<TLead> {
