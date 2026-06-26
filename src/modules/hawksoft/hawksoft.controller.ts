@@ -54,42 +54,45 @@ const getClientPolicies = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getPolicyByNumber = catchAsync(async (req: Request, res: Response) => {
-    const agencyId = req.params.agencyId || '17837';
-    const { policyNumber } = req.params;
+  const agencyId = req.query.agencyId || '17837'
+  const policyNumber = req.query.policyNumber as string
 
-    if (!policyNumber) {
-        return sendResponse(res, {
-            statusCode: httpStatus.BAD_REQUEST,
-            success: false,
-            message: 'Policy Number is required',
-        });
+  if (!policyNumber) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Policy Number is required',
+    })
+  }
+
+  try {
+    const result = await HawkSoftService.getPolicyByNumber(
+      Number(agencyId),
+      policyNumber,
+    )
+
+    if (!result || (Array.isArray(result) && result.length === 0)) {
+      return sendResponse(res, {
+        statusCode: httpStatus.NOT_FOUND,
+        success: false,
+        message: 'No policy found matching the policy number',
+      })
     }
 
-    try {
-        const result = await HawkSoftService.getPolicyByNumber(Number(agencyId), policyNumber);
-
-        if (!result || (Array.isArray(result) && result.length === 0)) {
-            return sendResponse(res, {
-                statusCode: httpStatus.NOT_FOUND,
-                success: false,
-                message: 'No policy found matching the policy number',
-            });
-        }
-
-        sendResponse(res, {
-            statusCode: httpStatus.OK,
-            success: true,
-            message: 'Policy information retrieved successfully',
-            data: result,
-        });
-    } catch (error: any) {
-        sendResponse(res, {
-            statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-            success: false,
-            message: error.message || 'Error retrieving policy information',
-        });
-    }
-});
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Policy information retrieved successfully',
+      data: result,
+    })
+  } catch (error: any) {
+    sendResponse(res, {
+      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+      success: false,
+      message: error.message || 'Error retrieving policy information',
+    })
+  }
+})
 
 const getClient = catchAsync(async (req: Request, res: Response) => {
     const agencyId = req.params.agencyId || '17837';

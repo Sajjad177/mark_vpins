@@ -17,7 +17,7 @@ router.get('/client/:clientId/policies', HawkSoftController.getClientPolicies);
 
 // Search policy by number (Agency defaults to 17837)
 router.get('/agency/:agencyId/policy/:policyNumber', HawkSoftController.getPolicyByNumber);
-router.get('/policy/:policyNumber', HawkSoftController.getPolicyByNumber);
+router.get('/policy', HawkSoftController.getPolicyByNumber)
 
 // Search clients by name or phone (Agency defaults to 17837)
 router.get('/agency/:agencyId/search', HawkSoftController.searchClients);
